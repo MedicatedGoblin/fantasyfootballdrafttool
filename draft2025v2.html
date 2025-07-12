@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fantasy Draft Tool</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+    }
+    .controls {
+      margin-bottom: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid black;
+      text-align: left;
+    }
+    .RB { background-color: #c8f7c5; color: black; }
+    .WR { background-color: #c5d9f7; color: black; }
+    .QB { background-color: #f9d6a5; color: black; }
+    .TE { background-color: #e3c5f7; color: black; }
+    .strikethrough {
+      text-decoration: line-through;
+      opacity: 0.5;
+      font-weight: bold;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Fantasy Draft Board</h2>
+
+<div class="controls">
+  <input type="file" id="fileInput" accept=".txt" />
+  <input type="text" id="searchInput" placeholder="Search players..." />
+  <button onclick="filterByPosition('ALL')">ALL</button>
+  <button onclick="filterByPosition('RB')">RB</button>
+  <button onclick="filterByPosition('WR')">WR</button>
+  <button onclick="filterByPosition('QB')">QB</button>
+  <button onclick="filterByPosition('TE')">TE</button>
+  <button onclick="resetAll()">Reset All Drafted</button>
+  <button onclick="resetBoard()">Reset Board (Clear Players)</button>
+</div>
+
+<table id="playerTable">
+  <thead>
+    <tr>
+      <th>✔</th>
+      <th>#</th>
+      <th>Name</th>
+      <th>Tag</th>
+      <th>Position</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  let players = [];
+  let currentFilter = "ALL";
+  const tableBody = document.querySelector("#playerTable tbody");
+  const searchInput = document.getElementById("searchInput");
+  const fileInput = document.getElementById("fileInput");
+
+  fileInput.addEventListener("change", handleFileUpload);
+  searchInput.addEventListener("input", renderTable);
+
+  function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const lines = e.target.result.split("\n").filter(line => line.trim());
+      players = lines.map((line, index) => {
+        const match = line.match(/^(.*?)\s+([A-Z]{2,3}\d+)$/);
+        if (!match) return null;
+        const name = match[1];
+        const tag = match[2];
+        const position = tag.match(/[A-Z]+/)[0];
+        return {
+          id: index + 1,
+          name,
+          tag,
+          position,
+          drafted: false
+        };
+      }).filter(Boolean);
+
+      // Reset search and filters for new file
+      searchInput.value = "";
+      currentFilter = "ALL";
+
+      renderTable();
+
+      // Clear file input so same file can be reloaded if needed
+      fileInput.value = "";
+    };
+    reader.readAsText(file);
+  }
+
+  function renderTable() {
+    const keyword = searchInput.value.toLowerCase();
+    tableBody.innerHTML = "";
+
+    players.forEach(player => {
+      const matchesFilter = currentFilter === "ALL" || player.position === currentFilter;
+      const matchesSearch = player.name.toLowerCase().includes(keyword);
+      if (!matchesFilter || !matchesSearch) return;
+
+      const tr = document.createElement("tr");
+      tr.classList.add(player.position);
+      if (player.drafted) tr.classList.add("strikethrough");
+
+      tr.innerHTML = `
+        <td><input type="checkbox" ${player.drafted ? "checked" : ""} onchange="toggleDrafted(${player.id})" /></td>
+        <td>${player.id}</td>
+        <td>${player.name}</td>
+        <td>${player.tag}</td>
+        <td>${player.position}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  function toggleDrafted(id) {
+    const player = players.find(p => p.id === id);
+    if (player) {
+      player.drafted = !player.drafted;
+      renderTable();
+    }
+  }
+
+  function resetAll() {
+    players.forEach(p => p.drafted = false);
+    searchInput.value = "";
+    currentFilter = "ALL";
+    renderTable();
+  }
+
+  // New function to clear entire board
+  function resetBoard() {
+    players = [];
+    tableBody.innerHTML = "";
+    searchInput.value = "";
+    currentFilter = "ALL";
+    fileInput.value = "";
+  }
+
+  function filterByPosition(pos) {
+    currentFilter = pos;
+    renderTable();
+  }
+</script>
+
+</body>
+</html>
