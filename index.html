@@ -197,16 +197,19 @@ input[type="checkbox"]:hover {
 
 /* Pick number box */
 .pick-number-box {
+  display: inline-block;
   background: #ff8c00;
   color: black;
   font-weight: bold;
-  padding: 3px 10px;
-  border-radius: 5px;
-  font-size: 0.85rem;
-  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-left: 8px;
+  margin-top: 4px;
   vertical-align: middle;
-  box-shadow: 0 2px 5px rgba(255, 140, 0, 0.6);
-  border: 3px solid #ff8c00;
+  box-shadow: 0 2px 5px rgba(255, 140, 0, 0.5);
+  border: 2px solid #ff8c00;
+  white-space: nowrap;
 }
 
 /* My picks styling */
@@ -289,6 +292,13 @@ tbody tr {
 @media (max-width: 600px) {
   .team-section {
     flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  .pick-number-box {
+    display: block;
+    margin-left: 0;
+    margin-top: 6px;
   }
 }
   </style>
