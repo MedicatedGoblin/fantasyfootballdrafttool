@@ -21,6 +21,8 @@
       padding: 8px;
       border: 1px solid black;
       text-align: left;
+      vertical-align: middle;
+      position: relative;
     }
     .RB { background-color: #c8f7c5; color: black; }
     .WR { background-color: #c5d9f7; color: black; }
@@ -37,6 +39,33 @@
     .recent-pick {
       border: 3px solid orange;
       background-color: #fff3cd !important;
+    }
+    /* Pick number box to the right of player name in recent pick row */
+    .recent-pick .pick-number-box {
+      display: inline-block;
+      background: orange;
+      color: black;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      white-space: nowrap;
+      margin-left: 8px;
+      vertical-align: middle;
+      border: 3px solid orange;
+    }
+    /* Mobile-friendly pick number badge */
+    .pick-badge {
+      display: none;
+      background: orange;
+      color: black;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      margin-left: 8px;
     }
     .my-picks {
       display: flex;
@@ -60,6 +89,21 @@
     }
     .pick-label {
       width: 60px;
+    }
+    @media (max-width: 800px) {
+      /* Hide Pick # column on smaller screens */
+      th.pick-number-header,
+      td.pick-number-cell {
+        display: none;
+      }
+      /* Show pick number badge on player name cell */
+      .pick-badge {
+        display: inline-block;
+      }
+      /* Hide the pick-number-box on mobile because space is limited */
+      .recent-pick .pick-number-box {
+        display: none;
+      }
     }
     @media (max-width: 600px) {
       table, th, td {
@@ -129,7 +173,7 @@
       <th>Tag</th>
       <th>Position</th>
       <th>Drafted By</th>
-      <th>Pick #</th>
+      <!-- Removed Pick # header -->
     </tr>
   </thead>
   <tbody></tbody>
@@ -405,15 +449,33 @@
         if (player.draftedBy === teamNames[myTeamIndex]) tr.classList.add("highlight");
         if (player.pickNumber === currentPick && player.draftedBy !== teamNames[myTeamIndex]) tr.classList.add("recent-pick");
 
+        // Construct player name cell with pick badge for mobile and pick number box for desktop
+        const nameCell = document.createElement("td");
+        nameCell.innerHTML = `${player.name}`;
+        if (tr.classList.contains("recent-pick") && player.pickNumber) {
+          const pickBox = document.createElement("div");
+          pickBox.className = "pick-number-box";
+          pickBox.textContent = `Pick ${player.pickNumber}`;
+          nameCell.appendChild(pickBox);
+        } else if (player.pickNumber) {
+          // For non-recent picks, show small badge on mobile
+          const pickBadge = document.createElement("span");
+          pickBadge.className = "pick-badge";
+          pickBadge.textContent = `#${player.pickNumber}`;
+          nameCell.appendChild(pickBadge);
+        }
+
         tr.innerHTML = `
           <td><input type="checkbox" ${player.drafted ? "checked" : ""} onchange="toggleDrafted(${player.id})" /></td>
           <td>${player.id}</td>
-          <td>${player.name}</td>
+        `;
+        tr.appendChild(nameCell);
+        tr.innerHTML += `
           <td>${player.tag}</td>
           <td>${player.position}</td>
           <td>${player.draftedBy || ""}</td>
-          <td>${player.pickNumber || ""}</td>
         `;
+
         tr.addEventListener("dblclick", () => toggleDrafted(player.id));
         tableBody.appendChild(tr);
       }
@@ -449,54 +511,49 @@
           draftedBy: null,
           pickNumber: null,
         };
-      }).filter(Boolean);
+      }).filter(p => p !== null);
       saveAll();
       renderTable();
     };
     reader.readAsText(file);
   }
 
-  yourTeamSelect.addEventListener("change", () => {
-    const val = yourTeamSelect.value;
-    if (val === "") {
-      myTeamIndex = -1;
+  function syncMyPickIndex() {
+    if (yourTeamSelect.value === "") {
       myPickSelect.innerHTML = "";
       myPickSelect.disabled = true;
       startDraftBtn.disabled = true;
-    } else {
-      myTeamIndex = parseInt(val, 10);
-      myPickSelect.innerHTML = "";
-      const option = document.createElement("option");
-      option.value = myTeamIndex + 1;
-      option.textContent = myTeamIndex + 1;
-      myPickSelect.appendChild(option);
-      myPickSelect.value = option.value;
-      myPickSelect.disabled = true;
-      startDraftBtn.disabled = false;
+      myTeamIndex = -1;
+      saveAll();
+      return;
     }
+    myTeamIndex = parseInt(yourTeamSelect.value, 10);
+    myPickSelect.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = myTeamIndex + 1;
+    option.textContent = myTeamIndex + 1;
+    myPickSelect.appendChild(option);
+    myPickSelect.value = option.value;
+    myPickSelect.disabled = true;
+    startDraftBtn.disabled = false;
     saveAll();
-  });
-
-  teamCountSelect.addEventListener("change", () => {
-    generateTeamNameInputs();
-    syncYourTeamSelectOptions();
-    saveAll();
-  });
+  }
 
   fileInput.addEventListener("change", handleFileUpload);
   searchInput.addEventListener("input", renderTable);
+  teamCountSelect.addEventListener("change", () => {
+    generateTeamNameInputs();
+    saveAll();
+  });
+  yourTeamSelect.addEventListener("change", syncMyPickIndex);
 
+  // Initial setup
   window.onload = () => {
     populateTeamCountOptions();
     loadAll();
     renderTable();
     updateCurrentPickDisplay();
   };
-
-  function filterByPosition(pos) {
-    currentFilter = pos;
-    renderTable();
-  }
 </script>
 
 </body>
