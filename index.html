@@ -347,7 +347,13 @@ tbody tr {
     display: none;
   }
 }
-
+@media (max-width: 600px) {
+  tbody tr.strikethrough .pick-number-box {
+    text-decoration: none !important;
+    color: #ff8c00; /* keep orange */
+    opacity: 1 !important;
+  }
+}
   </style>
 </head>
 <body>
