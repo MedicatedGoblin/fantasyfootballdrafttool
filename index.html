@@ -40,7 +40,6 @@
       border: 3px solid orange;
       background-color: #fff3cd !important;
     }
-    /* Pick number box to the right of player name in recent pick row */
     .recent-pick .pick-number-box {
       display: inline-block;
       background: orange;
@@ -55,7 +54,6 @@
       vertical-align: middle;
       border: 3px solid orange;
     }
-    /* Mobile-friendly pick number badge */
     .pick-badge {
       display: none;
       background: orange;
@@ -90,17 +88,19 @@
     .pick-label {
       width: 60px;
     }
+    /* Error highlight */
+    .error {
+      border: 2px solid red !important;
+      background-color: #ffe6e6 !important;
+    }
     @media (max-width: 800px) {
-      /* Hide Pick # column on smaller screens */
       th.pick-number-header,
       td.pick-number-cell {
         display: none;
       }
-      /* Show pick number badge on player name cell */
       .pick-badge {
         display: inline-block;
       }
-      /* Hide the pick-number-box on mobile because space is limited */
       .recent-pick .pick-number-box {
         display: none;
       }
@@ -131,6 +131,8 @@
 
 <div class="controls">
   <input type="file" id="fileInput" accept=".txt" />
+  <button id="submitFileBtn">Submit File</button>
+  <button id="removeFileBtn" disabled>Remove File</button>
   <input type="text" id="searchInput" placeholder="Search players..." />
   <button onclick="filterByPosition('ALL')">ALL</button>
   <button onclick="filterByPosition('RB')">RB</button>
@@ -173,7 +175,6 @@
       <th>Tag</th>
       <th>Position</th>
       <th>Drafted By</th>
-      <!-- Pick # column removed -->
     </tr>
   </thead>
   <tbody></tbody>
@@ -188,6 +189,8 @@
   let myTeamIndex = -1;
 
   const fileInput = document.getElementById("fileInput");
+  const submitFileBtn = document.getElementById("submitFileBtn");
+  const removeFileBtn = document.getElementById("removeFileBtn");
   const searchInput = document.getElementById("searchInput");
   const tableBody = document.querySelector("#playerTable tbody");
   const teamCountSelect = document.getElementById("teamCount");
@@ -195,6 +198,7 @@
   const myPickSelect = document.getElementById("myPickIndex");
   const startDraftBtn = document.getElementById("startDraftBtn");
   const currentPickDisplay = document.getElementById("currentPickDisplay");
+  const teamNamesContainer = document.getElementById("teamNames");
 
   function populateTeamCountOptions() {
     const options = [10, 8, 12, 14];
@@ -209,8 +213,7 @@
 
   function generateTeamNameInputs() {
     const teamCount = parseInt(teamCountSelect.value, 10);
-    const container = document.getElementById("teamNames");
-    container.innerHTML = "";
+    teamNamesContainer.innerHTML = "";
     for (let i = 0; i < teamCount; i++) {
       const input = document.createElement("input");
       input.type = "text";
@@ -221,9 +224,10 @@
         teamNames[i] = input.value.trim();
         syncYourTeamSelectOptions();
         saveAll();
+        validateStartDraftButton();
       });
-      container.appendChild(input);
-      container.appendChild(document.createElement("br"));
+      teamNamesContainer.appendChild(input);
+      teamNamesContainer.appendChild(document.createElement("br"));
     }
   }
 
@@ -243,13 +247,11 @@
       }
     }
 
-    // If previous selection no longer valid, reset to blank
     if (!yourTeamSelect.querySelector(`option[value="${prevValue}"]`)) {
       yourTeamSelect.value = "";
       myTeamIndex = -1;
       myPickSelect.innerHTML = "";
       myPickSelect.disabled = true;
-      startDraftBtn.disabled = true;
     } else {
       yourTeamSelect.value = prevValue;
       if (prevValue !== "") {
@@ -261,7 +263,6 @@
         myPickSelect.appendChild(option);
         myPickSelect.value = option.value;
         myPickSelect.disabled = true;
-        startDraftBtn.disabled = false;
       }
     }
   }
@@ -272,7 +273,6 @@
       myTeamIndex = -1;
       myPickSelect.innerHTML = "";
       myPickSelect.disabled = true;
-      startDraftBtn.disabled = true;
     } else {
       myTeamIndex = parseInt(val, 10);
       myPickSelect.innerHTML = "";
@@ -282,21 +282,70 @@
       myPickSelect.appendChild(option);
       myPickSelect.value = option.value;
       myPickSelect.disabled = true;
-      startDraftBtn.disabled = false;
     }
     saveAll();
     renderTable();
+    validateStartDraftButton();
   });
 
   teamCountSelect.addEventListener("change", () => {
     saveAll();
     generateTeamNameInputs();
     syncYourTeamSelectOptions();
+    validateStartDraftButton();
   });
 
+  // Validate if draft can start (all teams named, your team selected, file submitted)
+  function validateStartDraftButton() {
+    let valid = true;
+
+    // Clear all previous errors first
+    fileInput.classList.remove("error");
+    submitFileBtn.classList.remove("error");
+    startDraftBtn.classList.remove("error");
+    yourTeamSelect.classList.remove("error");
+
+    // Validate team names: all must be non-empty
+    const teamCount = parseInt(teamCountSelect.value, 10);
+    let teamsValid = true;
+    for (let i = 0; i < teamCount; i++) {
+      const input = document.getElementById(`teamName${i}`);
+      if (!input || input.value.trim() === "") {
+        input?.classList.add("error");
+        teamsValid = false;
+        valid = false;
+      } else {
+        input.classList.remove("error");
+      }
+    }
+
+    if (!teamsValid) valid = false;
+
+    // Validate your team selected
+    if (yourTeamSelect.value === "" || yourTeamSelect.value === null) {
+      yourTeamSelect.classList.add("error");
+      valid = false;
+    } else {
+      yourTeamSelect.classList.remove("error");
+    }
+
+    // Validate player list loaded (file submitted)
+    if (players.length === 0) {
+      fileInput.classList.add("error");
+      submitFileBtn.classList.add("error");
+      valid = false;
+    } else {
+      fileInput.classList.remove("error");
+      submitFileBtn.classList.remove("error");
+    }
+
+    startDraftBtn.disabled = !valid;
+  }
+
   function setupDraft() {
-    if (myTeamIndex === -1) {
-      alert("Please select your team before starting the draft.");
+    validateStartDraftButton();
+    if (startDraftBtn.disabled) {
+      alert("Please fix the highlighted errors before starting the draft.");
       return;
     }
 
@@ -322,7 +371,7 @@
       forward = !forward;
     }
 
-    if(currentPick >= draftOrder.length) currentPick = 0; // reset if draft finished previously
+    if (currentPick >= draftOrder.length) currentPick = 0; // reset if draft finished previously
 
     updateCurrentPickDisplay();
     saveAll();
@@ -352,11 +401,9 @@
       player.drafted = true;
       const teamIndex = draftOrder[currentPick];
       player.draftedBy = teamNames[teamIndex];
-      // Assign pickNumber BEFORE increasing currentPick to keep it consistent for rendering
       player.pickNumber = currentPick + 1;
       currentPick++;
     } else {
-      // Undo allowed only for the last pick
       if (player.pickNumber === currentPick) {
         player.drafted = false;
         player.draftedBy = null;
@@ -457,6 +504,7 @@
     generateTeamNameInputs();
     renderTable();
     updateCurrentPickDisplay();
+    clearFileInput();
   }
 
   function renderTable() {
@@ -480,7 +528,10 @@
         if (player.draftedBy === teamNames[myTeamIndex]) tr.classList.add("highlight");
         if (player.pickNumber === currentPick && player.draftedBy !== teamNames[myTeamIndex]) tr.classList.add("recent-pick");
 
-        // Construct player name cell with pick badge for mobile and pick number box for desktop
+        tr.addEventListener("dblclick", () => {
+          toggleDrafted(player.id);
+        });
+
         const nameCell = document.createElement("td");
         nameCell.textContent = player.name;
         if (tr.classList.contains("recent-pick")) {
@@ -495,39 +546,32 @@
           nameCell.appendChild(pickBadge);
         }
 
-        // Checkbox cell
         const cbCell = document.createElement("td");
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.checked = player.drafted;
         cb.dataset.id = player.id;
-        cb.addEventListener("change", (e) => {
+        cb.addEventListener("change", () => {
           toggleDrafted(player.id);
         });
         cbCell.appendChild(cb);
 
-        // Pick # cell removed
-
         tr.appendChild(cbCell);
 
-        // Number cell
         const numCell = document.createElement("td");
         numCell.textContent = player.id;
         tr.appendChild(numCell);
 
         tr.appendChild(nameCell);
 
-        // Tag cell
         const tagCell = document.createElement("td");
         tagCell.textContent = player.tag;
         tr.appendChild(tagCell);
 
-        // Position cell
         const posCell = document.createElement("td");
         posCell.textContent = player.position;
         tr.appendChild(posCell);
 
-        // Drafted by cell
         const draftedByCell = document.createElement("td");
         draftedByCell.textContent = player.draftedBy || "";
         tr.appendChild(draftedByCell);
@@ -543,19 +587,22 @@
     });
   }
 
-  function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  function handleFileSubmit() {
+    if (!fileInput.files.length) {
+      alert("Please select a player file before submitting.");
+      fileInput.classList.add("error");
+      return;
+    }
+    fileInput.classList.remove("error");
 
+    const file = fileInput.files[0];
     const reader = new FileReader();
     reader.onload = e => {
       const lines = e.target.result.split("\n").filter(line => line.trim());
       players = lines.map((line, index) => {
-        // Expected line format: "Player Name TAG"
         const parts = line.trim().split(/\s+/);
         const tag = parts.pop();
         const name = parts.join(" ");
-        // Assume position by last 2 or 3 uppercase letters in tag: e.g. RB, WR, QB, TE
         let position = "OTHER";
         if (tag) {
           if (tag.includes("RB")) position = "RB";
@@ -572,15 +619,34 @@
           draftedBy: null,
           pickNumber: null,
         };
-      }).filter(p => p.name && p.tag); // filter out any malformed lines
+      }).filter(p => p.name && p.tag);
 
       currentPick = 0;
       draftOrder = [];
       saveAll();
       renderTable();
       updateCurrentPickDisplay();
+
+      removeFileBtn.disabled = false;
+      validateStartDraftButton();
     };
     reader.readAsText(file);
+  }
+
+  function removePlayerFile() {
+    players = [];
+    draftOrder = [];
+    currentPick = 0;
+    saveAll();
+    renderTable();
+    updateCurrentPickDisplay();
+    clearFileInput();
+    removeFileBtn.disabled = true;
+    validateStartDraftButton();
+  }
+
+  function clearFileInput() {
+    fileInput.value = "";
   }
 
   // Init
@@ -589,10 +655,18 @@
   loadAll();
   renderTable();
   updateCurrentPickDisplay();
+  validateStartDraftButton();
 
   // Event listeners
-  fileInput.addEventListener("change", handleFileUpload);
+  submitFileBtn.addEventListener("click", handleFileSubmit);
+  removeFileBtn.addEventListener("click", removePlayerFile);
   searchInput.addEventListener("input", renderTable);
+  fileInput.addEventListener("change", () => {
+    // Just clear error on new file select, no auto loading
+    fileInput.classList.remove("error");
+    submitFileBtn.classList.remove("error");
+    validateStartDraftButton();
+  });
 </script>
 
 </body>
