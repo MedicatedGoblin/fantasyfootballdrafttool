@@ -32,11 +32,22 @@
       opacity: 0.5;
       font-weight: bold;
     }
+    .highlight {
+      background-color: yellow !important;
+    }
     .hidden {
       display: none;
     }
-    /* Goblin image in top right */
-    /* Responsive adjustments */
+    .my-picks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .my-picks div {
+      flex: 1;
+      min-width: 150px;
+    }
     @media (max-width: 600px) {
       #goblinImage {
         width: 80px;
@@ -44,7 +55,7 @@
       table, th, td {
         font-size: 14px;
       }
-      .controls button, .controls input {
+      .controls button, .controls input, .controls select {
         font-size: 14px;
         margin-bottom: 0.5rem;
         width: 100%;
@@ -68,7 +79,33 @@
   <button onclick="filterByPosition('WR')">WR</button>
   <button onclick="filterByPosition('QB')">QB</button>
   <button onclick="filterByPosition('TE')">TE</button>
+  <label><input type="checkbox" id="hidePickedCheckbox" onchange="renderTable()" /> Hide Picked</label>
   <button onclick="resetAll()">Reset All</button>
+</div>
+
+<div class="controls">
+  <label>Number of Teams:
+    <select id="teamCount" onchange="handleTeamCountChange()">
+      <option value="8">8</option>
+      <option value="10" selected>10</option>
+      <option value="12">12</option>
+      <option value="14">14</option>
+    </select>
+  </label>
+  <div id="teamNames"></div>
+  <label>Your Team Pick Number:
+    <select id="myPickIndex" style="width: 60px;"></select>
+  </label>
+  <button onclick="setupDraft()">Start Draft</button>
+  <div id="currentPickDisplay" style="margin-top: 0.5rem;"></div>
+</div>
+
+<h3>Your Picks</h3>
+<div class="my-picks">
+  <div><strong>QB</strong><ul id="myQB"></ul></div>
+  <div><strong>RB</strong><ul id="myRB"></ul></div>
+  <div><strong>WR</strong><ul id="myWR"></ul></div>
+  <div><strong>TE</strong><ul id="myTE"></ul></div>
 </div>
 
 <table id="playerTable">
@@ -79,6 +116,8 @@
       <th>Name</th>
       <th>Tag</th>
       <th>Position</th>
+      <th>Drafted By</th>
+      <th>Pick #</th>
     </tr>
   </thead>
   <tbody></tbody>
@@ -87,6 +126,11 @@
 <script>
   let players = [];
   let currentFilter = "ALL";
+  let draftOrder = [];
+  let currentPick = 0;
+  let teamNames = [];
+  let myTeamIndex = 0;
+
   const tableBody = document.querySelector("#playerTable tbody");
   const searchInput = document.getElementById("searchInput");
 
@@ -111,26 +155,147 @@
           name,
           tag,
           position,
-          drafted: false
+          drafted: false,
+          draftedBy: null,
+          pickNumber: null
         };
       }).filter(Boolean);
+      loadDraftedFromStorage();
       renderTable();
     };
     reader.readAsText(file);
   }
 
+  function generateTeamNameInputs(teamCount) {
+    const container = document.getElementById("teamNames");
+    container.innerHTML = "";
+    for (let i = 0; i < teamCount; i++) {
+      container.innerHTML += `<input type="text" id="teamName${i}" placeholder="Team ${i + 1}" /><br>`;
+    }
+  }
+
+  function generateMyPickDropdown(teamCount) {
+    const pickSelect = document.getElementById("myPickIndex");
+    pickSelect.innerHTML = "";
+    for (let i = 1; i <= teamCount; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = i;
+      pickSelect.appendChild(option);
+    }
+    pickSelect.value = 1; // default to 1
+  }
+
+  function handleTeamCountChange() {
+    const teamCount = parseInt(document.getElementById("teamCount").value);
+    generateTeamNameInputs(teamCount);
+    generateMyPickDropdown(teamCount);
+  }
+
+  function setupDraft() {
+    const teamCount = parseInt(document.getElementById("teamCount").value);
+    teamNames = [];
+    for (let i = 0; i < teamCount; i++) {
+      const input = document.getElementById(`teamName${i}`);
+      teamNames.push(input.value.trim() || `Team ${i + 1}`);
+    }
+    myTeamIndex = Math.min(Math.max(parseInt(document.getElementById("myPickIndex").value) - 1, 0), teamCount - 1);
+
+    draftOrder = [];
+    let forward = true;
+
+    for (let round = 0; round < 20; round++) {
+      const roundOrder = Array.from({ length: teamCount }, (_, i) => i);
+      draftOrder.push(...(forward ? roundOrder : roundOrder.reverse()));
+      forward = !forward;
+    }
+
+    updateCurrentPickDisplay();
+  }
+
+  function updateCurrentPickDisplay() {
+    const teamIndex = draftOrder[currentPick];
+    const teamName = teamNames[teamIndex] || `Team ${teamIndex + 1}`;
+    document.getElementById("currentPickDisplay").innerText = `Pick ${currentPick + 1} - ${teamName}`;
+  }
+
+  function toggleDrafted(id) {
+    const player = players.find(p => p.id === id);
+    if (player) {
+      if (!player.drafted) {
+        // Draft player at current pick
+        player.drafted = true;
+        const teamIndex = draftOrder[currentPick];
+        player.draftedBy = teamNames[teamIndex];
+        player.pickNumber = currentPick + 1;
+        currentPick++;
+      } else {
+        // Undo drafted player
+        // Only allow undo if player's pickNumber is the last pick
+        if (player.pickNumber === currentPick) {
+          player.drafted = false;
+          player.draftedBy = null;
+          player.pickNumber = null;
+          currentPick--;
+        } else {
+          alert("You can only undo the most recent pick!");
+          return;
+        }
+      }
+      updateCurrentPickDisplay();
+      saveDraftedToStorage();
+      renderTable();
+    }
+  }
+
+  function saveDraftedToStorage() {
+    const draftedData = players.filter(p => p.drafted).map(p => ({ id: p.id, draftedBy: p.draftedBy, pickNumber: p.pickNumber }));
+    localStorage.setItem("draftedPlayers", JSON.stringify(draftedData));
+    localStorage.setItem("currentPick", currentPick);
+    localStorage.setItem("teamNames", JSON.stringify(teamNames));
+    localStorage.setItem("myTeamIndex", myTeamIndex);
+  }
+
+  function loadDraftedFromStorage() {
+    const saved = JSON.parse(localStorage.getItem("draftedPlayers") || "[]");
+    const savedPick = parseInt(localStorage.getItem("currentPick") || "0");
+    const savedTeams = JSON.parse(localStorage.getItem("teamNames") || "[]");
+    const savedMyPick = parseInt(localStorage.getItem("myTeamIndex") || "0");
+
+    saved.forEach(({ id, draftedBy, pickNumber }) => {
+      const player = players.find(p => p.id === id);
+      if (player) {
+        player.drafted = true;
+        player.draftedBy = draftedBy;
+        player.pickNumber = pickNumber;
+      }
+    });
+    currentPick = savedPick;
+    teamNames = savedTeams;
+    myTeamIndex = savedMyPick;
+    document.getElementById("myPickIndex").value = myTeamIndex + 1;
+    updateCurrentPickDisplay();
+  }
+
   function renderTable() {
     const keyword = searchInput.value.toLowerCase();
+    const hidePicked = document.getElementById("hidePickedCheckbox").checked;
     tableBody.innerHTML = "";
+    document.getElementById("myQB").innerHTML = "";
+    document.getElementById("myRB").innerHTML = "";
+    document.getElementById("myWR").innerHTML = "";
+    document.getElementById("myTE").innerHTML = "";
 
     players.forEach(player => {
       const matchesFilter = currentFilter === "ALL" || player.position === currentFilter;
       const matchesSearch = player.name.toLowerCase().includes(keyword);
       if (!matchesFilter || !matchesSearch) return;
+      if (hidePicked && player.drafted) return;
 
       const tr = document.createElement("tr");
       tr.classList.add(player.position);
       if (player.drafted) tr.classList.add("strikethrough");
+      if (player.draftedBy === teamNames[myTeamIndex]) tr.classList.add("highlight");
 
       tr.innerHTML = `
         <td><input type="checkbox" ${player.drafted ? "checked" : ""} onchange="toggleDrafted(${player.id})" /></td>
@@ -138,6 +303,8 @@
         <td>${player.name}</td>
         <td>${player.tag}</td>
         <td>${player.position}</td>
+        <td>${player.draftedBy || ''}</td>
+        <td>${player.pickNumber || ''}</td>
       `;
 
       tr.addEventListener("dblclick", () => {
@@ -145,28 +312,41 @@
       });
 
       tableBody.appendChild(tr);
+
+      if (player.draftedBy === teamNames[myTeamIndex]) {
+        const li = document.createElement("li");
+        li.textContent = `${player.name} (${player.tag})`;
+        document.getElementById("my" + player.position).appendChild(li);
+      }
     });
   }
 
-  function toggleDrafted(id) {
-    const player = players.find(p => p.id === id);
-    if (player) {
-      player.drafted = !player.drafted;
-      renderTable();
-    }
-  }
-
   function resetAll() {
-    players.forEach(p => p.drafted = false);
+    players.forEach(p => {
+      p.drafted = false;
+      p.draftedBy = null;
+      p.pickNumber = null;
+    });
+    currentPick = 0;
+    localStorage.removeItem("draftedPlayers");
+    localStorage.removeItem("currentPick");
+    localStorage.removeItem("teamNames");
+    localStorage.removeItem("myTeamIndex");
     searchInput.value = "";
     currentFilter = "ALL";
     renderTable();
+    updateCurrentPickDisplay();
   }
 
   function filterByPosition(pos) {
     currentFilter = pos;
     renderTable();
   }
+
+  // Initialize on page load
+  window.onload = () => {
+    handleTeamCountChange(); // generates team inputs and pick dropdown for default 10 teams
+  };
 </script>
 
 </body>
