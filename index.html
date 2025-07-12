@@ -902,6 +902,25 @@ tbody tr {
     }
   }
 });
+  // Auto-sync with picks from ESPN draft (via localStorage)
+let lastPickCount = 0;
+
+setInterval(() => {
+  const synced = JSON.parse(localStorage.getItem("syncedPicks") || "[]");
+  if (synced.length > lastPickCount) {
+    const newPicks = synced.slice(lastPickCount);
+    newPicks.forEach(({ name }) => {
+      const player = players.find(p =>
+        p.name.toLowerCase().includes(name.toLowerCase())
+      );
+      if (player && !player.drafted) {
+        toggleDrafted(player.id);
+      }
+    });
+    lastPickCount = synced.length;
+  }
+}, 1000);
+
 </script>
 
 </body>
