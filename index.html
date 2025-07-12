@@ -368,7 +368,6 @@ tbody tr {
       <th>✔</th>
       <th>#</th>
       <th>Name</th>
-      <th>Tag</th>
       <th>Position</th>
       <th>Drafted By</th>
     </tr>
@@ -755,10 +754,6 @@ tbody tr {
         tr.appendChild(numCell);
 
         tr.appendChild(nameCell);
-
-        const tagCell = document.createElement("td");
-        tagCell.textContent = player.tag;
-        tr.appendChild(tagCell);
 
         const posCell = document.createElement("td");
         posCell.textContent = player.position;
