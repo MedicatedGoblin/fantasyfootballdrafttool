@@ -315,6 +315,39 @@ tbody tr {
   text-decoration: none !important;
   opacity: 1 !important;
 }
+    @media (max-width: 600px) {
+  body {
+    padding: 1rem;
+  }
+
+  /* Center the table */
+  table {
+    margin: 0 auto;
+    width: 100% !important;
+    table-layout: fixed; /* Fix column widths */
+    font-size: 14px;
+  }
+
+  /* Prevent wide columns, allow wrapping */
+  th, td {
+    padding: 8px 10px;
+    word-wrap: break-word;
+    white-space: normal; /* allow wrapping */
+  }
+
+  /* Limit Drafted By column width and allow wrapping */
+  th:nth-child(6),
+  td:nth-child(6) {
+    max-width: 120px;
+  }
+
+  /* Optionally, hide Tag column (since you wanted to remove it) */
+  th:nth-child(4),
+  td:nth-child(4) {
+    display: none;
+  }
+}
+
   </style>
 </head>
 <body>
