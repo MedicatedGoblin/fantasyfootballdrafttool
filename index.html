@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fantasy Draft Tool</title>
+  <title>Fantasy Draft Tool with Firebase</title>
   <style>
     body {
       font-family: sans-serif;
@@ -40,7 +40,6 @@
       border: 3px solid orange;
       background-color: #fff3cd !important;
     }
-    /* Pick number box to the right of player name in recent pick row */
     .recent-pick .pick-number-box {
       display: inline-block;
       background: orange;
@@ -55,7 +54,6 @@
       vertical-align: middle;
       border: 3px solid orange;
     }
-    /* Mobile-friendly pick number badge */
     .pick-badge {
       display: none;
       background: orange;
@@ -91,16 +89,13 @@
       width: 60px;
     }
     @media (max-width: 800px) {
-      /* Hide Pick # column on smaller screens */
       th.pick-number-header,
       td.pick-number-cell {
         display: none;
       }
-      /* Show pick number badge on player name cell */
       .pick-badge {
         display: inline-block;
       }
-      /* Hide the pick-number-box on mobile because space is limited */
       .recent-pick .pick-number-box {
         display: none;
       }
@@ -173,13 +168,33 @@
       <th>Tag</th>
       <th>Position</th>
       <th>Drafted By</th>
-      <!-- Pick # column removed -->
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<script>
+<!-- Firebase SDK -->
+<script type="module">
+  // Import Firebase modules from CDN
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+  // Your Firebase config here - replace with your own project credentials
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY_HERE",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ----- Your main app code starts here -----
+
   let players = [];
   let currentFilter = "ALL";
   let draftOrder = [];
@@ -196,6 +211,7 @@
   const startDraftBtn = document.getElementById("startDraftBtn");
   const currentPickDisplay = document.getElementById("currentPickDisplay");
 
+  // Populate teams dropdown
   function populateTeamCountOptions() {
     const options = [10, 8, 12, 14];
     teamCountSelect.innerHTML = "";
@@ -207,6 +223,7 @@
     });
   }
 
+  // Generate input fields for team names
   function generateTeamNameInputs() {
     const teamCount = parseInt(teamCountSelect.value, 10);
     const container = document.getElementById("teamNames");
@@ -227,6 +244,7 @@
     }
   }
 
+  // Sync your team select dropdown with team names
   function syncYourTeamSelectOptions() {
     const prevValue = yourTeamSelect.value;
     yourTeamSelect.innerHTML = '<option value="" disabled selected>-- Select Team --</option>';
@@ -353,14 +371,12 @@
       player.draftedBy = teamNames[teamIndex];
       player.pickNumber = currentPick + 1;
       currentPick++;
-      broadcastDraftUpdate(player.name);  // Broadcast on new draft pick
     } else {
       if (player.pickNumber === currentPick) {
         player.drafted = false;
         player.draftedBy = null;
         player.pickNumber = null;
         currentPick--;
-        broadcastDraftUpdate(player.name, true); // Broadcast undo pick
       } else if (player.pickNumber < currentPick) {
         alert("You can only undo the most recent pick.");
         return;
@@ -370,19 +386,6 @@
     updateCurrentPickDisplay();
     saveAll();
     renderTable();
-  }
-
-  function broadcastDraftUpdate(playerName, undo = false) {
-    // Broadcast the drafted players' names to other tabs/windows
-    // We'll send the updated player(s) so others can sync
-    if (!syncChannel) return;
-
-    if (undo) {
-      // For undo, send the player name to mark as undrafted
-      syncChannel.postMessage({ undoPlayer: playerName });
-    } else {
-      syncChannel.postMessage({ draftedPlayers: [playerName] });
-    }
   }
 
   function saveAll() {
@@ -511,7 +514,7 @@
         cb.type = "checkbox";
         cb.checked = player.drafted;
         cb.dataset.id = player.id;
-        cb.addEventListener("change", (e) => {
+        cb.addEventListener("change", () => {
           toggleDrafted(player.id);
         });
         cbCell.appendChild(cb);
@@ -519,14 +522,13 @@
         tr.appendChild(cbCell);
 
         const numCell = document.createElement("td");
-        numCell.textContent = player.pickNumber || "";
-        numCell.className = "pick-number-cell";
+        numCell.textContent = player.id;
         tr.appendChild(numCell);
 
         tr.appendChild(nameCell);
 
         const tagCell = document.createElement("td");
-        tagCell.textContent = player.tag || "";
+        tagCell.textContent = player.tag;
         tr.appendChild(tagCell);
 
         const posCell = document.createElement("td");
@@ -540,100 +542,110 @@
         tableBody.appendChild(tr);
       }
 
-      // Add to my picks if matches my team
       if (player.draftedBy === teamNames[myTeamIndex]) {
-        const listId = "my" + player.position;
-        const ul = document.getElementById(listId);
-        if (ul) {
-          const li = document.createElement("li");
-          li.textContent = player.name;
-          ul.appendChild(li);
-        }
+        const li = document.createElement("li");
+        li.textContent = `${player.name} (${player.tag})`;
+        document.getElementById("my" + player.position).appendChild(li);
       }
     });
   }
 
-  fileInput.addEventListener("change", e => {
-    const file = e.target.files[0];
+  function handleFileUpload(event) {
+    const file = event.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = e => {
-      const lines = e.target.result.split(/\r?\n/);
-      players = lines
-        .filter(line => line.trim() !== "")
-        .map((line, index) => {
-          const parts = line.split(",");
-          return {
-            id: index + 1,
-            name: parts[0].trim(),
-            tag: parts[1]?.trim() || "",
-            position: parts[2]?.trim() || "",
-            drafted: false,
-            draftedBy: null,
-            pickNumber: null,
-          };
-        });
+      const lines = e.target.result.split("\n").filter(line => line.trim());
+      players = lines.map((line, index) => {
+        const parts = line.trim().split(/\s+/);
+        const tag = parts.pop();
+        const name = parts.join(" ");
+        let position = "OTHER";
+        if (tag) {
+          if (tag.includes("RB")) position = "RB";
+          else if (tag.includes("WR")) position = "WR";
+          else if (tag.includes("QB")) position = "QB";
+          else if (tag.includes("TE")) position = "TE";
+        }
+        return {
+          id: index + 1,
+          name,
+          tag,
+          position,
+          drafted: false,
+          draftedBy: null,
+          pickNumber: null,
+        };
+      }).filter(p => p.name && p.tag);
+
       currentPick = 0;
       draftOrder = [];
-      teamNames = [];
-      myTeamIndex = -1;
-      teamCountSelect.value = "10";
-      yourTeamSelect.value = "";
-      myPickSelect.innerHTML = "";
-      myPickSelect.disabled = true;
-      startDraftBtn.disabled = true;
-      generateTeamNameInputs();
+      saveAll();
       renderTable();
       updateCurrentPickDisplay();
-      saveAll();
     };
     reader.readAsText(file);
-  });
+  }
 
-  searchInput.addEventListener("input", renderTable);
+  // --- Firebase sync functions ---
 
-  // BroadcastChannel for syncing draft picks
-  const syncChannel = new BroadcastChannel("espnDraftSync");
-
-  syncChannel.onmessage = (event) => {
-    const data = event.data;
-
-    if (data.draftedPlayers) {
-      data.draftedPlayers.forEach(name => {
-        const player = players.find(p => p.name.toLowerCase() === name.toLowerCase() && !p.drafted);
-        if (player) {
-          player.drafted = true;
-          player.draftedBy = "ESPN";
-          player.pickNumber = currentPick + 1;
-          currentPick++;
-        }
-      });
-      updateCurrentPickDisplay();
-      saveAll();
-      renderTable();
+  // Save entire players array to Firestore document
+  async function savePlayersToFirebase() {
+    try {
+      await setDoc(doc(db, "drafts", "players"), { players });
+      console.log("Players saved to Firebase.");
+    } catch (error) {
+      console.error("Error saving players to Firebase:", error);
     }
+  }
 
-    if (data.undoPlayer) {
-      const player = players.find(p => p.name.toLowerCase() === data.undoPlayer.toLowerCase());
-      if (player && player.drafted) {
-        player.drafted = false;
-        player.draftedBy = null;
-        player.pickNumber = null;
-        if(currentPick > 0) currentPick--;
-        updateCurrentPickDisplay();
-        saveAll();
+  // Load players array from Firestore document
+  async function loadPlayersFromFirebase() {
+    try {
+      const docSnap = await getDoc(doc(db, "drafts", "players"));
+      if (docSnap.exists()) {
+        players = docSnap.data().players || [];
+        console.log("Players loaded from Firebase.");
         renderTable();
+      } else {
+        console.log("No Firebase draft data found, using local data.");
       }
+    } catch (error) {
+      console.error("Error loading players from Firebase:", error);
     }
-  };
+  }
 
-  // Initialize the page
+  // Override saveAll to also save to Firebase
+  async function saveAllWithFirebase() {
+    saveAll();
+    await savePlayersToFirebase();
+  }
+
+  // Replace calls to saveAll with saveAllWithFirebase for Firebase sync
+  // For brevity here, let's override:
+  saveAll = saveAllWithFirebase;
+
+  // Initialization
   populateTeamCountOptions();
-  loadAll();
-  renderTable();
-  updateCurrentPickDisplay();
   generateTeamNameInputs();
 
+  // Load from localStorage and then from Firebase (async)
+  loadAll();
+  loadPlayersFromFirebase();
+
+  renderTable();
+  updateCurrentPickDisplay();
+
+  fileInput.addEventListener("change", handleFileUpload);
+  searchInput.addEventListener("input", renderTable);
+
+  // --- Place to add Tampermonkey or other scripts hooks ---
+  // For example:
+  // window.myDraftTool = { players, renderTable, toggleDrafted, ... };
+  // So Tampermonkey scripts can access or modify this data.
+
 </script>
+
 </body>
 </html>
