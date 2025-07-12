@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fantasy Draft Tool</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
 body {
   font-family: 'Inter', sans-serif;
@@ -216,6 +216,8 @@ input[type="checkbox"]:hover {
   box-shadow: 0 2px 5px rgba(255, 140, 0, 0.5);
   border: 2px solid #ff8c00;
   white-space: nowrap;
+  text-decoration: none !important; /* Ensure no line-through */
+  opacity: 1 !important;
 }
 
 /* My picks styling */
@@ -305,17 +307,18 @@ tbody tr {
     display: block;
     margin-left: 0;
     margin-top: 6px;
+    text-decoration: none !important;
+    color: #ff8c00 !important;
+    opacity: 1 !important;
   }
-.pick-number-box {
-  text-decoration: none !important;
-}
 
-}
-.pick-number-box {
-  text-decoration: none !important;
-  opacity: 1 !important;
-}
-    @media (max-width: 600px) {
+  /* Override strikethrough on pick-number-box */
+  tbody tr.strikethrough .pick-number-box {
+    text-decoration: none !important;
+    color: #ff8c00 !important;
+    opacity: 1 !important;
+  }
+
   body {
     padding: 1rem;
   }
@@ -336,25 +339,19 @@ tbody tr {
   }
 
   /* Limit Drafted By column width and allow wrapping */
-  th:nth-child(6),
-  td:nth-child(6) {
+  th:nth-child(5),
+  td:nth-child(5) {
     max-width: 120px;
   }
 
-  /* Optionally, hide Tag column (since you wanted to remove it) */
+  /* Hide Tag column */
   th:nth-child(4),
   td:nth-child(4) {
     display: none;
   }
 }
-@media (max-width: 600px) {
-  tbody tr.strikethrough .pick-number-box {
-    text-decoration: none !important;
-    color: #ff8c00; /* keep orange */
-    opacity: 1 !important;
-  }
-}
-  </style>
+</style>
+
 </head>
 <body>
 
