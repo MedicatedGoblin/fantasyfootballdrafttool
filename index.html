@@ -445,8 +445,8 @@ tbody tr {
     for (let i = 0; i < teamCount; i++) {
       const input = document.createElement("input");
       input.type = "text";
-      input.id = teamName${i};
-      input.placeholder = Team ${i + 1};
+      input.id = `teamName${i}`;
+      input.placeholder = `Team ${i + 1}`;
       input.value = teamNames[i] || "";
       input.addEventListener("input", () => {
         teamNames[i] = input.value.trim();
@@ -475,7 +475,7 @@ tbody tr {
       }
     }
 
-    if (!yourTeamSelect.querySelector(option[value="${prevValue}"])) {
+    if (!yourTeamSelect.querySelector(`option[value="${prevValue}"]`)) {
       yourTeamSelect.value = "";
       myTeamIndex = -1;
       myPickSelect.innerHTML = "";
@@ -537,7 +537,7 @@ tbody tr {
     const teamCount = parseInt(teamCountSelect.value, 10);
     let teamsValid = true;
     for (let i = 0; i < teamCount; i++) {
-      const input = document.getElementById(teamName${i});
+      const input = document.getElementById(`teamName${i}`);
       if (!input || input.value.trim() === "") {
         input?.classList.add("error");
         teamsValid = false;
@@ -614,7 +614,7 @@ tbody tr {
     }
     const teamIndex = draftOrder[currentPick];
     const teamName = teamNames[teamIndex] || "";
-    currentPickDisplay.textContent = Pick ${currentPick + 1} - ${teamName};
+    currentPickDisplay.textContent = `Pick ${currentPick + 1} - ${teamName}`;
   }
 
   function toggleDrafted(id) {
@@ -681,13 +681,13 @@ tbody tr {
     generateTeamNameInputs();
 
     for (let i = 0; i < teamNames.length; i++) {
-      const input = document.getElementById(teamName${i});
+      const input = document.getElementById(`teamName${i}`);
       if (input) input.value = teamNames[i] || "";
     }
 
     syncYourTeamSelectOptions();
 
-    if (myTeamIndex >= 0 && yourTeamSelect.querySelector(option[value="${myTeamIndex}"])) {
+    if (myTeamIndex >= 0 && yourTeamSelect.querySelector(`option[value="${myTeamIndex}"]`)) {
       yourTeamSelect.value = myTeamIndex;
       myPickSelect.innerHTML = "";
       const option = document.createElement("option");
@@ -765,7 +765,7 @@ tbody tr {
         if (tr.classList.contains("recent-pick")) {
           const pickNumberBox = document.createElement("span");
           pickNumberBox.className = "pick-number-box";
-          pickNumberBox.textContent = Pick ${player.pickNumber};
+          pickNumberBox.textContent = `Pick ${player.pickNumber}`;
           nameCell.appendChild(pickNumberBox);
 
         }
@@ -801,7 +801,7 @@ tbody tr {
 
       if (player.draftedBy === teamNames[myTeamIndex]) {
         const li = document.createElement("li");
-        li.textContent = ${player.name} (${player.tag});
+        li.textContent = `${player.name} (${player.tag})`;
         document.getElementById("my" + player.position).appendChild(li);
       }
     });
@@ -887,21 +887,6 @@ tbody tr {
     submitFileBtn.classList.remove("error");
     validateStartDraftButton();
   });
-  window.addEventListener("message", event => {
-  if (event.data && event.data.source === "espn-draft-sync") {
-    const playerName = event.data.player;
-    const pickIndex = event.data.pickIndex;
-    console.log("[ESPN SYNC] Player drafted:", playerName, "Pick:", pickIndex);
-
-    const player = players.find(p =>
-      p.name.toLowerCase().includes(playerName.toLowerCase())
-    );
-
-    if (player && !player.drafted) {
-      toggleDrafted(player.id);
-    }
-  }
-});
 </script>
 
 </body>
