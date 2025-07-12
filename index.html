@@ -887,6 +887,21 @@ tbody tr {
     submitFileBtn.classList.remove("error");
     validateStartDraftButton();
   });
+  window.addEventListener("message", event => {
+  if (event.data && event.data.source === "espn-draft-sync") {
+    const playerName = event.data.player;
+    const pickIndex = event.data.pickIndex;
+    console.log("[ESPN SYNC] Player drafted:", playerName, "Pick:", pickIndex);
+
+    const player = players.find(p =>
+      p.name.toLowerCase().includes(playerName.toLowerCase())
+    );
+
+    if (player && !player.drafted) {
+      toggleDrafted(player.id);
+    }
+  }
+});
 </script>
 
 </body>
