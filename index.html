@@ -173,7 +173,7 @@
       <th>Tag</th>
       <th>Position</th>
       <th>Drafted By</th>
-      <!-- Removed Pick # header -->
+      <!-- Pick # column removed -->
     </tr>
   </thead>
   <tbody></tbody>
@@ -243,7 +243,7 @@
       }
     }
 
-    // Keep selection if still valid, else reset to blank
+    // If previous selection no longer valid, reset to blank
     if (!yourTeamSelect.querySelector(`option[value="${prevValue}"]`)) {
       yourTeamSelect.value = "";
       myTeamIndex = -1;
@@ -265,6 +265,34 @@
       }
     }
   }
+
+  yourTeamSelect.addEventListener("change", () => {
+    const val = yourTeamSelect.value;
+    if (val === "") {
+      myTeamIndex = -1;
+      myPickSelect.innerHTML = "";
+      myPickSelect.disabled = true;
+      startDraftBtn.disabled = true;
+    } else {
+      myTeamIndex = parseInt(val, 10);
+      myPickSelect.innerHTML = "";
+      const option = document.createElement("option");
+      option.value = myTeamIndex + 1;
+      option.textContent = myTeamIndex + 1;
+      myPickSelect.appendChild(option);
+      myPickSelect.value = option.value;
+      myPickSelect.disabled = true;
+      startDraftBtn.disabled = false;
+    }
+    saveAll();
+    renderTable();
+  });
+
+  teamCountSelect.addEventListener("change", () => {
+    saveAll();
+    generateTeamNameInputs();
+    syncYourTeamSelectOptions();
+  });
 
   function setupDraft() {
     if (myTeamIndex === -1) {
@@ -293,7 +321,8 @@
       draftOrder.push(...(forward ? roundOrder : roundOrder.reverse()));
       forward = !forward;
     }
-    currentPick = 0;
+
+    if(currentPick >= draftOrder.length) currentPick = 0; // reset if draft finished previously
 
     updateCurrentPickDisplay();
     saveAll();
@@ -466,7 +495,7 @@
         }
 
         tr.innerHTML = `
-          <td><input type="checkbox" ${player.drafted ? "checked" : ""} onchange="toggleDrafted(${player.id})" /></td>
+          <td><input type="checkbox" ${player.drafted ? "checked" : ""} data-id="${player.id}" /></td>
           <td>${player.id}</td>
         `;
         tr.appendChild(nameCell);
@@ -476,6 +505,7 @@
           <td>${player.draftedBy || ""}</td>
         `;
 
+        // Add dblclick toggle
         tr.addEventListener("dblclick", () => toggleDrafted(player.id));
         tableBody.appendChild(tr);
       }
@@ -485,6 +515,14 @@
         li.textContent = `${player.name} (${player.tag})`;
         document.getElementById("my" + player.position).appendChild(li);
       }
+    });
+
+    // Add checkbox event listeners after table rows created
+    document.querySelectorAll('#playerTable tbody input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener("change", (e) => {
+        const id = parseInt(e.target.getAttribute("data-id"), 10);
+        toggleDrafted(id);
+      });
     });
   }
 
@@ -496,12 +534,18 @@
     reader.onload = e => {
       const lines = e.target.result.split("\n").filter(line => line.trim());
       players = lines.map((line, index) => {
-        const match = line.match(/^(.*?)\s+([A-Z]{2,3}\d+)$/);
-        if (!match) return null;
-        const name = match[1];
-        const tag = match[2];
-        const positionMatch = tag.match(/[A-Z]+/);
-        const position = positionMatch ? positionMatch[0] : "";
+        // Expected line format: "Player Name TAG"
+        const parts = line.trim().split(/\s+/);
+        const tag = parts.pop();
+        const name = parts.join(" ");
+        // Assume position by last 2 or 3 uppercase letters in tag: e.g. RB, WR, QB, TE
+        let position = "OTHER";
+        if (tag) {
+          if (tag.includes("RB")) position = "RB";
+          else if (tag.includes("WR")) position = "WR";
+          else if (tag.includes("QB")) position = "QB";
+          else if (tag.includes("TE")) position = "TE";
+        }
         return {
           id: index + 1,
           name,
@@ -511,50 +555,27 @@
           draftedBy: null,
           pickNumber: null,
         };
-      }).filter(p => p !== null);
+      }).filter(p => p.name && p.tag); // filter out any malformed lines
+
+      currentPick = 0;
+      draftOrder = [];
       saveAll();
       renderTable();
     };
     reader.readAsText(file);
   }
 
-  function syncMyPickIndex() {
-    if (yourTeamSelect.value === "") {
-      myPickSelect.innerHTML = "";
-      myPickSelect.disabled = true;
-      startDraftBtn.disabled = true;
-      myTeamIndex = -1;
-      saveAll();
-      return;
-    }
-    myTeamIndex = parseInt(yourTeamSelect.value, 10);
-    myPickSelect.innerHTML = "";
-    const option = document.createElement("option");
-    option.value = myTeamIndex + 1;
-    option.textContent = myTeamIndex + 1;
-    myPickSelect.appendChild(option);
-    myPickSelect.value = option.value;
-    myPickSelect.disabled = true;
-    startDraftBtn.disabled = false;
-    saveAll();
-  }
+  // Init
+  populateTeamCountOptions();
+  generateTeamNameInputs();
+  loadAll();
+  renderTable();
+  updateCurrentPickDisplay();
 
+  // Event listeners
   fileInput.addEventListener("change", handleFileUpload);
   searchInput.addEventListener("input", renderTable);
-  teamCountSelect.addEventListener("change", () => {
-    generateTeamNameInputs();
-    saveAll();
-  });
-  yourTeamSelect.addEventListener("change", syncMyPickIndex);
 
-  // Initial setup
-  window.onload = () => {
-    populateTeamCountOptions();
-    loadAll();
-    renderTable();
-    updateCurrentPickDisplay();
-  };
 </script>
-
 </body>
 </html>
