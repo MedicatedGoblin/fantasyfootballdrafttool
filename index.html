@@ -352,9 +352,11 @@
       player.drafted = true;
       const teamIndex = draftOrder[currentPick];
       player.draftedBy = teamNames[teamIndex];
+      // Assign pickNumber BEFORE increasing currentPick to keep it consistent for rendering
       player.pickNumber = currentPick + 1;
       currentPick++;
     } else {
+      // Undo allowed only for the last pick
       if (player.pickNumber === currentPick) {
         player.drafted = false;
         player.draftedBy = null;
@@ -480,33 +482,56 @@
 
         // Construct player name cell with pick badge for mobile and pick number box for desktop
         const nameCell = document.createElement("td");
-        nameCell.innerHTML = `${player.name}`;
-        if (tr.classList.contains("recent-pick") && player.pickNumber) {
-          const pickBox = document.createElement("div");
-          pickBox.className = "pick-number-box";
-          pickBox.textContent = `Pick ${player.pickNumber}`;
-          nameCell.appendChild(pickBox);
-        } else if (player.pickNumber) {
-          // For non-recent picks, show small badge on mobile
+        nameCell.textContent = player.name;
+        if (tr.classList.contains("recent-pick")) {
+          const pickNumberBox = document.createElement("span");
+          pickNumberBox.className = "pick-number-box";
+          pickNumberBox.textContent = `Pick ${player.pickNumber}`;
+          nameCell.appendChild(pickNumberBox);
+
           const pickBadge = document.createElement("span");
           pickBadge.className = "pick-badge";
-          pickBadge.textContent = `#${player.pickNumber}`;
+          pickBadge.textContent = `Pick ${player.pickNumber}`;
           nameCell.appendChild(pickBadge);
         }
 
-        tr.innerHTML = `
-          <td><input type="checkbox" ${player.drafted ? "checked" : ""} data-id="${player.id}" /></td>
-          <td>${player.id}</td>
-        `;
-        tr.appendChild(nameCell);
-        tr.innerHTML += `
-          <td>${player.tag}</td>
-          <td>${player.position}</td>
-          <td>${player.draftedBy || ""}</td>
-        `;
+        // Checkbox cell
+        const cbCell = document.createElement("td");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = player.drafted;
+        cb.dataset.id = player.id;
+        cb.addEventListener("change", (e) => {
+          toggleDrafted(player.id);
+        });
+        cbCell.appendChild(cb);
 
-        // Add dblclick toggle
-        tr.addEventListener("dblclick", () => toggleDrafted(player.id));
+        // Pick # cell removed
+
+        tr.appendChild(cbCell);
+
+        // Number cell
+        const numCell = document.createElement("td");
+        numCell.textContent = player.id;
+        tr.appendChild(numCell);
+
+        tr.appendChild(nameCell);
+
+        // Tag cell
+        const tagCell = document.createElement("td");
+        tagCell.textContent = player.tag;
+        tr.appendChild(tagCell);
+
+        // Position cell
+        const posCell = document.createElement("td");
+        posCell.textContent = player.position;
+        tr.appendChild(posCell);
+
+        // Drafted by cell
+        const draftedByCell = document.createElement("td");
+        draftedByCell.textContent = player.draftedBy || "";
+        tr.appendChild(draftedByCell);
+
         tableBody.appendChild(tr);
       }
 
@@ -515,14 +540,6 @@
         li.textContent = `${player.name} (${player.tag})`;
         document.getElementById("my" + player.position).appendChild(li);
       }
-    });
-
-    // Add checkbox event listeners after table rows created
-    document.querySelectorAll('#playerTable tbody input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener("change", (e) => {
-        const id = parseInt(e.target.getAttribute("data-id"), 10);
-        toggleDrafted(id);
-      });
     });
   }
 
@@ -561,6 +578,7 @@
       draftOrder = [];
       saveAll();
       renderTable();
+      updateCurrentPickDisplay();
     };
     reader.readAsText(file);
   }
@@ -575,7 +593,7 @@
   // Event listeners
   fileInput.addEventListener("change", handleFileUpload);
   searchInput.addEventListener("input", renderTable);
-
 </script>
+
 </body>
 </html>
