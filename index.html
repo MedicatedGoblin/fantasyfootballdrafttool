@@ -243,7 +243,6 @@
       }
     }
 
-    // If previous selection no longer valid, reset to blank
     if (!yourTeamSelect.querySelector(`option[value="${prevValue}"]`)) {
       yourTeamSelect.value = "";
       myTeamIndex = -1;
@@ -322,7 +321,7 @@
       forward = !forward;
     }
 
-    if(currentPick >= draftOrder.length) currentPick = 0; // reset if draft finished previously
+    if(currentPick >= draftOrder.length) currentPick = 0;
 
     updateCurrentPickDisplay();
     saveAll();
@@ -352,16 +351,16 @@
       player.drafted = true;
       const teamIndex = draftOrder[currentPick];
       player.draftedBy = teamNames[teamIndex];
-      // Assign pickNumber BEFORE increasing currentPick to keep it consistent for rendering
       player.pickNumber = currentPick + 1;
       currentPick++;
+      broadcastDraftUpdate(player.name);  // Broadcast on new draft pick
     } else {
-      // Undo allowed only for the last pick
       if (player.pickNumber === currentPick) {
         player.drafted = false;
         player.draftedBy = null;
         player.pickNumber = null;
         currentPick--;
+        broadcastDraftUpdate(player.name, true); // Broadcast undo pick
       } else if (player.pickNumber < currentPick) {
         alert("You can only undo the most recent pick.");
         return;
@@ -371,6 +370,19 @@
     updateCurrentPickDisplay();
     saveAll();
     renderTable();
+  }
+
+  function broadcastDraftUpdate(playerName, undo = false) {
+    // Broadcast the drafted players' names to other tabs/windows
+    // We'll send the updated player(s) so others can sync
+    if (!syncChannel) return;
+
+    if (undo) {
+      // For undo, send the player name to mark as undrafted
+      syncChannel.postMessage({ undoPlayer: playerName });
+    } else {
+      syncChannel.postMessage({ draftedPlayers: [playerName] });
+    }
   }
 
   function saveAll() {
@@ -480,7 +492,6 @@
         if (player.draftedBy === teamNames[myTeamIndex]) tr.classList.add("highlight");
         if (player.pickNumber === currentPick && player.draftedBy !== teamNames[myTeamIndex]) tr.classList.add("recent-pick");
 
-        // Construct player name cell with pick badge for mobile and pick number box for desktop
         const nameCell = document.createElement("td");
         nameCell.textContent = player.name;
         if (tr.classList.contains("recent-pick")) {
@@ -495,7 +506,6 @@
           nameCell.appendChild(pickBadge);
         }
 
-        // Checkbox cell
         const cbCell = document.createElement("td");
         const cb = document.createElement("input");
         cb.type = "checkbox";
@@ -506,28 +516,23 @@
         });
         cbCell.appendChild(cb);
 
-        // Pick # cell removed
-
         tr.appendChild(cbCell);
 
-        // Number cell
         const numCell = document.createElement("td");
-        numCell.textContent = player.id;
+        numCell.textContent = player.pickNumber || "";
+        numCell.className = "pick-number-cell";
         tr.appendChild(numCell);
 
         tr.appendChild(nameCell);
 
-        // Tag cell
         const tagCell = document.createElement("td");
-        tagCell.textContent = player.tag;
+        tagCell.textContent = player.tag || "";
         tr.appendChild(tagCell);
 
-        // Position cell
         const posCell = document.createElement("td");
         posCell.textContent = player.position;
         tr.appendChild(posCell);
 
-        // Drafted by cell
         const draftedByCell = document.createElement("td");
         draftedByCell.textContent = player.draftedBy || "";
         tr.appendChild(draftedByCell);
@@ -535,65 +540,100 @@
         tableBody.appendChild(tr);
       }
 
+      // Add to my picks if matches my team
       if (player.draftedBy === teamNames[myTeamIndex]) {
-        const li = document.createElement("li");
-        li.textContent = `${player.name} (${player.tag})`;
-        document.getElementById("my" + player.position).appendChild(li);
+        const listId = "my" + player.position;
+        const ul = document.getElementById(listId);
+        if (ul) {
+          const li = document.createElement("li");
+          li.textContent = player.name;
+          ul.appendChild(li);
+        }
       }
     });
   }
 
-  function handleFileUpload(event) {
-    const file = event.target.files[0];
+  fileInput.addEventListener("change", e => {
+    const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = e => {
-      const lines = e.target.result.split("\n").filter(line => line.trim());
-      players = lines.map((line, index) => {
-        // Expected line format: "Player Name TAG"
-        const parts = line.trim().split(/\s+/);
-        const tag = parts.pop();
-        const name = parts.join(" ");
-        // Assume position by last 2 or 3 uppercase letters in tag: e.g. RB, WR, QB, TE
-        let position = "OTHER";
-        if (tag) {
-          if (tag.includes("RB")) position = "RB";
-          else if (tag.includes("WR")) position = "WR";
-          else if (tag.includes("QB")) position = "QB";
-          else if (tag.includes("TE")) position = "TE";
-        }
-        return {
-          id: index + 1,
-          name,
-          tag,
-          position,
-          drafted: false,
-          draftedBy: null,
-          pickNumber: null,
-        };
-      }).filter(p => p.name && p.tag); // filter out any malformed lines
-
+      const lines = e.target.result.split(/\r?\n/);
+      players = lines
+        .filter(line => line.trim() !== "")
+        .map((line, index) => {
+          const parts = line.split(",");
+          return {
+            id: index + 1,
+            name: parts[0].trim(),
+            tag: parts[1]?.trim() || "",
+            position: parts[2]?.trim() || "",
+            drafted: false,
+            draftedBy: null,
+            pickNumber: null,
+          };
+        });
       currentPick = 0;
       draftOrder = [];
-      saveAll();
+      teamNames = [];
+      myTeamIndex = -1;
+      teamCountSelect.value = "10";
+      yourTeamSelect.value = "";
+      myPickSelect.innerHTML = "";
+      myPickSelect.disabled = true;
+      startDraftBtn.disabled = true;
+      generateTeamNameInputs();
       renderTable();
       updateCurrentPickDisplay();
+      saveAll();
     };
     reader.readAsText(file);
-  }
+  });
 
-  // Init
+  searchInput.addEventListener("input", renderTable);
+
+  // BroadcastChannel for syncing draft picks
+  const syncChannel = new BroadcastChannel("espnDraftSync");
+
+  syncChannel.onmessage = (event) => {
+    const data = event.data;
+
+    if (data.draftedPlayers) {
+      data.draftedPlayers.forEach(name => {
+        const player = players.find(p => p.name.toLowerCase() === name.toLowerCase() && !p.drafted);
+        if (player) {
+          player.drafted = true;
+          player.draftedBy = "ESPN";
+          player.pickNumber = currentPick + 1;
+          currentPick++;
+        }
+      });
+      updateCurrentPickDisplay();
+      saveAll();
+      renderTable();
+    }
+
+    if (data.undoPlayer) {
+      const player = players.find(p => p.name.toLowerCase() === data.undoPlayer.toLowerCase());
+      if (player && player.drafted) {
+        player.drafted = false;
+        player.draftedBy = null;
+        player.pickNumber = null;
+        if(currentPick > 0) currentPick--;
+        updateCurrentPickDisplay();
+        saveAll();
+        renderTable();
+      }
+    }
+  };
+
+  // Initialize the page
   populateTeamCountOptions();
-  generateTeamNameInputs();
   loadAll();
   renderTable();
   updateCurrentPickDisplay();
+  generateTeamNameInputs();
 
-  // Event listeners
-  fileInput.addEventListener("change", handleFileUpload);
-  searchInput.addEventListener("input", renderTable);
 </script>
-
 </body>
 </html>
