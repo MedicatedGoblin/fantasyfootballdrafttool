@@ -415,6 +415,25 @@ tbody tr {
   let currentPick = 0;
   let teamNames = [];
   let myTeamIndex = -1;
+// Add this near the top of your <script>, after players array declaration:
+let lastPickCount = 0;
+
+// Every second, check syncedPicks in localStorage and mark drafted players automatically
+setInterval(() => {
+  const synced = JSON.parse(localStorage.getItem("syncedPicks") || "[]");
+  if (synced.length > lastPickCount) {
+    const newPicks = synced.slice(lastPickCount);
+    newPicks.forEach(({ name }) => {
+      const player = players.find(p =>
+        p.name.toLowerCase() === name.toLowerCase()
+      );
+      if (player && !player.drafted) {
+        toggleDrafted(player.id);
+      }
+    });
+    lastPickCount = synced.length;
+  }
+}, 1000);
 
   const fileInput = document.getElementById("fileInput");
   const submitFileBtn = document.getElementById("submitFileBtn");
