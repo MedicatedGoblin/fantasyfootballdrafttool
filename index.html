@@ -8,6 +8,7 @@
     body {
       font-family: sans-serif;
       padding: 1rem;
+      position: relative;
     }
     .controls {
       margin-bottom: 1rem;
@@ -34,11 +35,44 @@
     .hidden {
       display: none;
     }
+    /* Goblin image in top right */
+    #goblinImage {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 120px;
+      height: auto;
+      border: 2px solid #555;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 0 8px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      #goblinImage {
+        width: 80px;
+      }
+      table, th, td {
+        font-size: 14px;
+      }
+      .controls button, .controls input {
+        font-size: 14px;
+        margin-bottom: 0.5rem;
+        width: 100%;
+      }
+      .controls {
+        display: flex;
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
 
 <h2>Fantasy Draft Board</h2>
+
+<img id="goblinImage" src="/mnt/data/526f8717-0942-4347-990b-cd8a3fa62fec.png" alt="Goblin" />
 
 <div class="controls">
   <input type="file" id="fileInput" accept=".txt" />
@@ -48,8 +82,7 @@
   <button onclick="filterByPosition('WR')">WR</button>
   <button onclick="filterByPosition('QB')">QB</button>
   <button onclick="filterByPosition('TE')">TE</button>
-  <button onclick="resetAll()">Reset All Drafted</button>
-  <button onclick="resetBoard()">Reset Board (Clear Players)</button>
+  <button onclick="resetAll()">Reset All</button>
 </div>
 
 <table id="playerTable">
@@ -70,9 +103,8 @@
   let currentFilter = "ALL";
   const tableBody = document.querySelector("#playerTable tbody");
   const searchInput = document.getElementById("searchInput");
-  const fileInput = document.getElementById("fileInput");
 
-  fileInput.addEventListener("change", handleFileUpload);
+  document.getElementById("fileInput").addEventListener("change", handleFileUpload);
   searchInput.addEventListener("input", renderTable);
 
   function handleFileUpload(event) {
@@ -96,15 +128,7 @@
           drafted: false
         };
       }).filter(Boolean);
-
-      // Reset search and filters for new file
-      searchInput.value = "";
-      currentFilter = "ALL";
-
       renderTable();
-
-      // Clear file input so same file can be reloaded if needed
-      fileInput.value = "";
     };
     reader.readAsText(file);
   }
@@ -129,6 +153,11 @@
         <td>${player.tag}</td>
         <td>${player.position}</td>
       `;
+
+      tr.addEventListener("dblclick", () => {
+        toggleDrafted(player.id);
+      });
+
       tableBody.appendChild(tr);
     });
   }
@@ -146,15 +175,6 @@
     searchInput.value = "";
     currentFilter = "ALL";
     renderTable();
-  }
-
-  // New function to clear entire board
-  function resetBoard() {
-    players = [];
-    tableBody.innerHTML = "";
-    searchInput.value = "";
-    currentFilter = "ALL";
-    fileInput.value = "";
   }
 
   function filterByPosition(pos) {
