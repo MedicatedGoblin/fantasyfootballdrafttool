@@ -315,22 +315,6 @@ tbody tr {
   text-decoration: none !important;
   opacity: 1 !important;
 }
-@media (max-width: 600px) {
-  .table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
-  }
-
-  table {
-    min-width: 600px; /* ensures table has minimum width to force scroll */
-  }
-
-  /* Optional: reduce padding/font size for mobile */
-  th, td {
-    padding: 8px 10px;
-    font-size: 14px;
-  }
-}
   </style>
 </head>
 <body>
@@ -378,7 +362,6 @@ tbody tr {
   <div><strong>TE</strong><ul id="myTE"></ul></div>
 </div>
 
-<div class="table-wrapper">
 <table id="playerTable">
   <thead>
     <tr>
@@ -392,7 +375,6 @@ tbody tr {
   </thead>
   <tbody></tbody>
 </table>
-</div>
 
 <script>
   let players = [];
