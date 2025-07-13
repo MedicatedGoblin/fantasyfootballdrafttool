@@ -888,27 +888,35 @@ tbody tr {
     validateStartDraftButton();
   });
 </script>
-  <script>
-window.addEventListener("message", (event) => {
-  if (event.data?.type === "DRAFTED_PLAYERS") {
-    const picks = event.data.payload;
-    console.log("📩 Received drafted picks:", picks);
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // DEBUG: log every message received
+  window.addEventListener("message", (event) => {
+    console.log("🛠️ DEBUG - message received:", event.data);
+  });
 
-    picks.forEach(pickedName => {
-      const rows = document.querySelectorAll("#playerTable tbody tr");
-      for (const row of rows) {
-        const nameCell = row.cells[2]; // 3rd column is Name
-        if (nameCell && nameCell.textContent.trim().toLowerCase().includes(pickedName.toLowerCase())) {
-          const checkbox = row.querySelector("input[type='checkbox']");
-          if (checkbox && !checkbox.checked) {
-            checkbox.click();
-            console.log("☑️ Auto-checked:", pickedName);
+  // Handle drafted players from extension
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "DRAFTED_PLAYERS") {
+      const picks = event.data.payload;
+      console.log("📩 Received drafted picks:", picks);
+
+      picks.forEach(pickedName => {
+        const rows = document.querySelectorAll("#playerTable tbody tr");
+        for (const row of rows) {
+          const nameCell = row.cells[2]; // 3rd column is Name
+          if (nameCell && nameCell.textContent.trim().toLowerCase().includes(pickedName.toLowerCase())) {
+            const checkbox = row.querySelector("input[type='checkbox']");
+            if (checkbox && !checkbox.checked) {
+              checkbox.click();
+              console.log("☑️ Auto-checked:", pickedName);
+            }
+            break;
           }
-          break; // Stop after finding first match
         }
-      }
-    });
-  }
+      });
+    }
+  });
 });
 </script>
 </body>
