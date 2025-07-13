@@ -347,7 +347,25 @@ tbody tr {
     display: none;
   }
 }
-
+.drag-divider {
+  height: 10px;
+  background: #ddd;
+  cursor: row-resize;
+  border: 2px dashed #aaa;
+  margin: 4px 0;
+  border-radius: 5px;
+}
+.drag-divider.dragging {
+  background: #007bff;
+  border-color: #0056b3;
+}
+.tier-label {
+  display: inline-block;
+  min-width: 50px;
+  font-weight: bold;
+  color: #007bff;
+  margin-right: 0.5rem;
+}
   </style>
 </head>
 <body>
@@ -735,77 +753,128 @@ tbody tr {
     clearFileInput();
   }
 
-  function renderTable() {
-    const keyword = searchInput.value.toLowerCase();
-    const hidePicked = document.getElementById("hidePickedCheckbox").checked;
-    tableBody.innerHTML = "";
-    document.getElementById("myQB").innerHTML = "";
-    document.getElementById("myRB").innerHTML = "";
-    document.getElementById("myWR").innerHTML = "";
-    document.getElementById("myTE").innerHTML = "";
+  <script>
+function renderTable() {
+  const keyword = searchInput.value.toLowerCase();
+  const hidePicked = document.getElementById("hidePickedCheckbox").checked;
+  tableBody.innerHTML = "";
+  document.getElementById("myQB").innerHTML = "";
+  document.getElementById("myRB").innerHTML = "";
+  document.getElementById("myWR").innerHTML = "";
+  document.getElementById("myTE").innerHTML = "";
 
-    players.forEach(player => {
-      const matchesFilter = currentFilter === "ALL" || player.position === currentFilter;
-      const matchesSearch = player.name.toLowerCase().includes(keyword);
-      if (!matchesFilter || !matchesSearch) return;
-
-      if (!(hidePicked && player.drafted)) {
-        const tr = document.createElement("tr");
-        tr.classList.add(player.position);
-        if (player.drafted) tr.classList.add("strikethrough");
-        if (player.draftedBy === teamNames[myTeamIndex]) tr.classList.add("highlight");
-        if (player.pickNumber === currentPick && player.draftedBy !== teamNames[myTeamIndex]) tr.classList.add("recent-pick");
-
-        tr.addEventListener("dblclick", () => {
-          toggleDrafted(player.id);
-        });
-
-        const nameCell = document.createElement("td");
-        nameCell.textContent = player.name;
-        if (tr.classList.contains("recent-pick")) {
-          const pickNumberBox = document.createElement("span");
-          pickNumberBox.className = "pick-number-box";
-          pickNumberBox.textContent = `Pick ${player.pickNumber}`;
-          nameCell.appendChild(pickNumberBox);
-
-        }
-
-        const cbCell = document.createElement("td");
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.checked = player.drafted;
-        cb.dataset.id = player.id;
-        cb.addEventListener("change", () => {
-          toggleDrafted(player.id);
-        });
-        cbCell.appendChild(cb);
-
-        tr.appendChild(cbCell);
-
-        const numCell = document.createElement("td");
-        numCell.textContent = player.id;
-        tr.appendChild(numCell);
-
-        tr.appendChild(nameCell);
-
-        const posCell = document.createElement("td");
-        posCell.textContent = player.position;
-        tr.appendChild(posCell);
-
-        const draftedByCell = document.createElement("td");
-        draftedByCell.textContent = player.draftedBy || "";
-        tr.appendChild(draftedByCell);
-
-        tableBody.appendChild(tr);
-      }
-
-      if (player.draftedBy === teamNames[myTeamIndex]) {
-        const li = document.createElement("li");
-        li.textContent = `${player.name} (${player.tag})`;
-        document.getElementById("my" + player.position).appendChild(li);
-      }
-    });
+  let tierDividers = JSON.parse(localStorage.getItem("tierDividers") || "[]");
+  if (tierDividers.length === 0) {
+    tierDividers = [0, 10, 20, 30, 40];
   }
+
+  const sorted = players
+    .filter(p => (currentFilter === "ALL" || p.position === currentFilter) && p.name.toLowerCase().includes(keyword))
+    .sort((a, b) => a.id - b.id);
+
+  sorted.forEach((player, index) => {
+    const tierIndex = tierDividers.findIndex(div => index < div);
+    const tier = tierIndex === -1 ? tierDividers.length + 1 : tierIndex + 1;
+
+    if (!(hidePicked && player.drafted)) {
+      const tr = document.createElement("tr");
+      tr.classList.add(player.position);
+      if (player.drafted) tr.classList.add("strikethrough");
+      if (player.draftedBy === teamNames[myTeamIndex]) tr.classList.add("highlight");
+      if (player.pickNumber === currentPick && player.draftedBy !== teamNames[myTeamIndex]) tr.classList.add("recent-pick");
+      tr.setAttribute("data-index", index);
+
+      tr.addEventListener("dblclick", () => toggleDrafted(player.id));
+
+      const cbCell = document.createElement("td");
+      const tierLabel = document.createElement("span");
+      tierLabel.className = "tier-label";
+      tierLabel.textContent = `Tier ${tier}`;
+      cbCell.appendChild(tierLabel);
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = player.drafted;
+      cb.dataset.id = player.id;
+      cb.addEventListener("change", () => toggleDrafted(player.id));
+      cbCell.appendChild(cb);
+
+      const numCell = document.createElement("td");
+      numCell.textContent = player.id;
+
+      const nameCell = document.createElement("td");
+      nameCell.textContent = player.name;
+      if (tr.classList.contains("recent-pick")) {
+        const pickNumberBox = document.createElement("span");
+        pickNumberBox.className = "pick-number-box";
+        pickNumberBox.textContent = `Pick ${player.pickNumber}`;
+        nameCell.appendChild(pickNumberBox);
+      }
+
+      const posCell = document.createElement("td");
+      posCell.textContent = player.position;
+
+      const draftedByCell = document.createElement("td");
+      draftedByCell.textContent = player.draftedBy || "";
+
+      tr.appendChild(cbCell);
+      tr.appendChild(numCell);
+      tr.appendChild(nameCell);
+      tr.appendChild(posCell);
+      tr.appendChild(draftedByCell);
+
+      tableBody.appendChild(tr);
+    }
+
+    if (player.draftedBy === teamNames[myTeamIndex]) {
+      const li = document.createElement("li");
+      li.textContent = `${player.name} (${player.tag})`;
+      document.getElementById("my" + player.position).appendChild(li);
+    }
+
+    if (tierDividers.includes(index + 1)) {
+      const divider = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 5;
+      const line = document.createElement("div");
+      line.className = "drag-divider";
+      line.draggable = true;
+
+      line.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", index + 1);
+        line.classList.add("dragging");
+      });
+      line.addEventListener("dragend", () => {
+        document.querySelectorAll(".drag-divider").forEach(d => d.classList.remove("dragging"));
+      });
+      td.appendChild(line);
+      divider.appendChild(td);
+      tableBody.appendChild(divider);
+    }
+  });
+
+  tableBody.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const draggedIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+    const rows = Array.from(tableBody.querySelectorAll("tr"));
+    const mouseY = e.clientY;
+
+    const newIndex = rows.findIndex(row => {
+      const rect = row.getBoundingClientRect();
+      return mouseY < rect.top + rect.height / 2;
+    });
+
+    if (draggedIndex !== newIndex && newIndex > 0) {
+      const newDividers = tierDividers.filter(i => i !== draggedIndex);
+      newDividers.push(newIndex);
+      newDividers.sort((a, b) => a - b);
+      localStorage.setItem("tierDividers", JSON.stringify(newDividers));
+      renderTable();
+    }
+  });
+}
+</script>
+
 
   function handleFileSubmit() {
     if (!fileInput.files.length) {
