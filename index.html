@@ -399,6 +399,7 @@ tbody tr {
   <thead>
     <tr>
       <th>✔</th>
+      <th>Tier</th>
       <th>#</th>
       <th>Name</th>
       <th>Position</th>
@@ -782,6 +783,22 @@ tbody tr {
 
         tr.appendChild(cbCell);
 
+const tierCell = document.createElement("td");
+const tierSelect = document.createElement("select");
+["", "Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"].forEach(tier => {
+  const opt = document.createElement("option");
+  opt.value = tier;
+  opt.textContent = tier;
+  if (player.tier === tier) opt.selected = true;
+  tierSelect.appendChild(opt);
+});
+tierSelect.addEventListener("change", () => {
+  player.tier = tierSelect.value;
+  saveAll();
+});
+tierCell.appendChild(tierSelect);
+tr.appendChild(tierCell);
+        
         const numCell = document.createElement("td");
         numCell.textContent = player.id;
         tr.appendChild(numCell);
@@ -795,7 +812,7 @@ tbody tr {
         const draftedByCell = document.createElement("td");
         draftedByCell.textContent = player.draftedBy || "";
         tr.appendChild(draftedByCell);
-
+        
         tableBody.appendChild(tr);
       }
 
@@ -887,6 +904,39 @@ tbody tr {
     submitFileBtn.classList.remove("error");
     validateStartDraftButton();
   });
+  function getStoredTiers() {
+  try {
+    return JSON.parse(localStorage.getItem("playerTiers")) || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveTiers(tiers) {
+  localStorage.setItem("playerTiers", JSON.stringify(tiers));
+}
+
+// Extend players with tier property
+const storedTiers = getStoredTiers();
+players.forEach(p => {
+  if (storedTiers[p.name]) p.tier = storedTiers[p.name];
+});
+
+function updateTier(playerName, tier) {
+  const tiers = getStoredTiers();
+  if (tier) {
+    tiers[playerName] = tier;
+  } else {
+    delete tiers[playerName];
+  }
+  saveTiers(tiers);
+
+  const player = players.find(p => p.name === playerName);
+  if (player) {
+    player.tier = tier;
+    renderTable();
+  }
+}
 </script>
 <script>
 window.addEventListener("message", (event) => {
