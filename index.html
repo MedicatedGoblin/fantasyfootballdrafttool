@@ -395,64 +395,6 @@ tbody tr {
   <div><strong>TE</strong><ul id="myTE"></ul></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<div class="tier-board">
-  <h3>Tier Board</h3>
-  <div class="tier" id="tier1"><h4>Tier 1</h4></div>
-  <div class="tier" id="tier2"><h4>Tier 2</h4></div>
-  <div class="tier" id="tier3"><h4>Tier 3</h4></div>
-  <div class="tier" id="tier4"><h4>Tier 4</h4></div>
-  <div class="tier" id="tier5"><h4>Tier 5</h4></div>
-</div>
-
-<style>
-.tier-board { margin: 2rem 0; }
-.tier {
-  border: 2px solid #333;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 1rem;
-  background-color: #fff;
-  min-height: 60px;
-}
-.tier h4 {
-  margin: 0 0 10px 0;
-}
-.tier .player {
-  padding: 6px 12px;
-  background: #eee;
-  margin-bottom: 6px;
-  border-radius: 4px;
-  cursor: move;
-}
-</style>
-
-<script>
-function createDraggableTiers(playerNames = []) {
-  const tier1 = document.getElementById("tier1");
-  tier1.innerHTML = '<h4>Tier 1</h4>';
-  playerNames.forEach(name => {
-    const div = document.createElement("div");
-    div.className = "player";
-    div.textContent = name;
-    tier1.appendChild(div);
-  });
-
-  for (let i = 1; i <= 5; i++) {
-    new Sortable(document.getElementById("tier" + i), {
-      group: "shared",
-      animation: 150
-    });
-  }
-}
-
-// Example players loaded into Tier 1:
-document.addEventListener("DOMContentLoaded", () => {
-  createDraggableTiers(["Justin Jefferson", "Ja'Marr Chase", "Christian McCaffrey"]);
-});
-</script>
-
-  
 <table id="playerTable">
   <thead>
     <tr>
