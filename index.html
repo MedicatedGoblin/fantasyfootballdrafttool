@@ -889,11 +889,12 @@ tbody tr {
   });
 </script>
 <script>
+<script>
 window.addEventListener("message", (event) => {
+  if (event.source !== window) return; // Ensure it comes from the same window
   if (event.data?.type === "DRAFTED_PLAYERS") {
     const picks = event.data.payload;
     console.log("📩 Received drafted picks:", picks);
-
     picks.forEach(pickedName => {
       const rows = document.querySelectorAll("#playerTable tbody tr");
       for (const row of rows) {
