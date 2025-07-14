@@ -710,14 +710,14 @@ document.getElementById("myDST").innerHTML = "";
         up.className = "player-tier-arrow";
         up.innerHTML = "▲";
         up.title = "Move player up";
-        up.disabled = i === 0 || i === tierBreaks[t];
+        up.disabled = i === 0;
         up.onclick = e => { e.stopPropagation(); movePlayer(i, -1); };
         controlCell.appendChild(up);
         const down = document.createElement("button");
         down.className = "player-tier-arrow";
         down.innerHTML = "▼";
         down.title = "Move player down";
-        down.disabled = i === visiblePlayers.length - 1 || i === tierBreaks[t+1] - 1;
+        down.disabled = i === visiblePlayers.length - 1;
         down.onclick = e => { e.stopPropagation(); movePlayer(i, 1); };
         controlCell.appendChild(down);
       }
