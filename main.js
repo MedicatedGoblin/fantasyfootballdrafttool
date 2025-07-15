@@ -683,13 +683,19 @@ function importBoard(file) {
       if (data.yourTeam) yourTeamSelect.value = data.yourTeam;
 
       saveAll();
-      loadAll();
+
+      // Do NOT call loadAll() here — just update everything manually
+      generateTeamNameInputs();
+      syncYourTeamSelectOptions();
       renderTable();
       updateCurrentPickDisplay();
+      validateStartDraftButton();
+
       alert("Draft board loaded successfully!");
-       document.getElementById('importBoardInput').value = '';
+      document.getElementById('importBoardInput').value = '';
     } catch (e) {
       alert('Failed to load board backup: ' + e.message);
+      document.getElementById('importBoardInput').value = '';
     }
   };
   reader.readAsText(file);
