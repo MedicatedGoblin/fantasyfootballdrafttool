@@ -34,8 +34,17 @@
     <div><strong>RB</strong><ul id="myRB"></ul></div>
     <div><strong>WR</strong><ul id="myWR"></ul></div>
     <div><strong>TE</strong><ul id="myTE"></ul></div>
-  <div><strong>K</strong><ul id="myK"></ul></div>
-  <div><strong>DST</strong><ul id="myDST"></ul></div>
+    <div><strong>K</strong><ul id="myK"></ul></div>
+    <div><strong>DST</strong><ul id="myDST"></ul></div>
+  </div>
+
+  <!-- Board backup controls: Export/Import -->
+  <div class="board-backup-controls" style="margin-bottom:1rem;display:flex;gap:0.5rem;">
+    <button id="exportBoardBtn">Export Board</button>
+    <label for="importBoardInput" style="display:inline-block;cursor:pointer;">
+      <span style="padding: 6px 12px; background: #eee; border: 1px solid #ccc; border-radius: 4px;">Import Board</span>
+      <input id="importBoardInput" type="file" style="display:none" accept=".json" />
+    </label>
   </div>
 
   <!-- Main filter/action buttons above the table, including K and DST -->
