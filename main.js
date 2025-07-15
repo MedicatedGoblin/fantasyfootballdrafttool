@@ -540,6 +540,14 @@ let players = [
   // ...add more players as needed, matching your old file format
 ];
 
+let rookiePlayers = [
+   { id: 1, name: "Ashton Jeanty", tag: "RB1", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
+  { id: 2, name: "Omarion Hampton", tag: "RB2", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
+  { id: 3, name: "RJ Harvey", tag: "RB3", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
+  { id: 4, name: "Quinshon Judkins", tag: "RB4", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
+  { id: 5, name: "Travis Hunter", tag: "WR1", position: "WR", drafted: false, draftedBy: null, pickNumber: null },
+];
+
 let currentFilter = "ALL";
 let draftOrder = [];
 let currentPick = 0;
@@ -564,6 +572,12 @@ const teamNamesContainer = document.getElementById("teamNames");
 function getVisiblePlayers() {
   const keyword = searchInput.value.toLowerCase();
   const hidePicked = document.getElementById("hidePickedCheckbox").checked;
+   if (currentFilter === 'ROOKIE') {
+      return rookiePlayers.filter(player =>
+         player.name.toLowerCase().includes(keyword) &&
+         (!hidePicked || !player.drafted)
+         );
+   }
   return players.filter(player => {
     const matchesFilter = currentFilter === "ALL" || player.position === currentFilter;
     const matchesSearch = player.name.toLowerCase().includes(keyword);
@@ -751,6 +765,7 @@ document.getElementById("myDST").innerHTML = "";
 function exportBoard() {
   const data = {
     players,
+    rookiePlayers,
     tierBreaks,
     teamNames,
     draftOrder,
@@ -782,6 +797,7 @@ function importBoard(file) {
       myTeamIndex = data.myTeamIndex ?? myTeamIndex;
       if (data.teamCount) teamCountSelect.value = data.teamCount;
       if (data.yourTeam) yourTeamSelect.value = data.yourTeam;
+      if (data.rookiePlayers) rookiePlayers = data.rookiePlayers;
 
       saveAll();
 
