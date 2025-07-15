@@ -640,7 +640,59 @@ document.getElementById("myDST").innerHTML = "";
     tdDivider.appendChild(tierLine);
     trDivider.appendChild(tdDivider);
     tableBody.appendChild(trDivider);
+// --- Board Export/Import ---
+document.getElementById('exportBoardBtn').addEventListener('click', exportBoard);
+document.getElementById('importBoardInput').addEventListener('change', function(evt){
+  const file = evt.target.files[0];
+  if (file) importBoard(file);
+});
 
+function exportBoard() {
+  const data = {
+    players,
+    tierBreaks,
+    teamNames,
+    draftOrder,
+    currentPick,
+    myTeamIndex,
+    teamCount: teamCountSelect.value,
+    yourTeam: yourTeamSelect.value
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fantasy_draft_board_backup.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+function importBoard(file) {
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const data = JSON.parse(event.target.result);
+      // Restore everything (with fallback for missing data)
+      players = data.players || players;
+      tierBreaks = data.tierBreaks || tierBreaks;
+      teamNames = data.teamNames || teamNames;
+      draftOrder = data.draftOrder || draftOrder;
+      currentPick = data.currentPick ?? currentPick;
+      myTeamIndex = data.myTeamIndex ?? myTeamIndex;
+      if (data.teamCount) teamCountSelect.value = data.teamCount;
+      if (data.yourTeam) yourTeamSelect.value = data.yourTeam;
+
+      saveAll();
+      loadAll();
+      renderTable();
+      updateCurrentPickDisplay();
+      alert("Draft board loaded successfully!");
+    } catch (e) {
+      alert('Failed to load board backup: ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
     // --- Add tier insert bar (in add-tier mode, edit only) ---
     if (editingTiers && addingTierMode && t < tierBreaks.length - 2) {
       const trAddBar = document.createElement("tr");
