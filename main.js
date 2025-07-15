@@ -640,12 +640,6 @@ document.getElementById("myDST").innerHTML = "";
     tdDivider.appendChild(tierLine);
     trDivider.appendChild(tdDivider);
     tableBody.appendChild(trDivider);
-// --- Board Export/Import ---
-document.getElementById('exportBoardBtn').addEventListener('click', exportBoard);
-document.getElementById('importBoardInput').addEventListener('change', function(evt){
-  const file = evt.target.files[0];
-  if (file) importBoard(file);
-});
 
 function exportBoard() {
   const data = {
@@ -1158,7 +1152,11 @@ loadAll();
 renderTable();
 updateCurrentPickDisplay();
 validateStartDraftButton();
-
+document.getElementById('exportBoardBtn').addEventListener('click', exportBoard);
+document.getElementById('importBoardInput').addEventListener('change', function(evt){
+  const file = evt.target.files[0];
+  if (file) importBoard(file);
+});
 searchInput.addEventListener("input", renderTable);
 
 window.addEventListener("message", (event) => {
