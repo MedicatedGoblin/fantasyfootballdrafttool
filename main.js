@@ -676,7 +676,7 @@ let rookiePlayers = [
   { id: 133, name: "Seth Henigan", tag: "QB14", position: "QB", drafted: false, draftedBy: null, pickNumber: null },
   { id: 134, name: "Ethan Garbers", tag: "QB15", position: "QB", drafted: false, draftedBy: null, pickNumber: null },
   { id: 135, name: "Garrett Greene", tag: "WR62", position: "WR", drafted: false, draftedBy: null, pickNumber: null },
-  { id: 136, name: "Donovan Smith", tag: "OL1", position: "OL", drafted: false, draftedBy: null, pickNumber: null },
+  // { id: 136, name: "Donovan Smith", tag: "OL1", position: "OL", drafted: false, draftedBy: null, pickNumber: null },
   { id: 137, name: "Nay'Quan Wright", tag: "RB35", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
   { id: 138, name: "Brock Lampe", tag: "RB36", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
   { id: 139, name: "Tre Stewart", tag: "RB37", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
