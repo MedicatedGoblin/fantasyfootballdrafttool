@@ -640,60 +640,6 @@ document.getElementById("myDST").innerHTML = "";
     tdDivider.appendChild(tierLine);
     trDivider.appendChild(tdDivider);
     tableBody.appendChild(trDivider);
-
-function exportBoard() {
-  const data = {
-    players,
-    tierBreaks,
-    teamNames,
-    draftOrder,
-    currentPick,
-    myTeamIndex,
-    teamCount: teamCountSelect.value,
-    yourTeam: yourTeamSelect.value
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'fantasy_draft_board_backup.json';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
-}
-
-function importBoard(file) {
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    try {
-      const data = JSON.parse(event.target.result);
-      // Restore everything (with fallback for missing data)
-      players = data.players || players;
-      tierBreaks = data.tierBreaks || tierBreaks;
-      teamNames = data.teamNames || teamNames;
-      draftOrder = data.draftOrder || draftOrder;
-      currentPick = data.currentPick ?? currentPick;
-      myTeamIndex = data.myTeamIndex ?? myTeamIndex;
-      if (data.teamCount) teamCountSelect.value = data.teamCount;
-      if (data.yourTeam) yourTeamSelect.value = data.yourTeam;
-
-      saveAll();
-
-      // Do NOT call loadAll() here — just update everything manually
-      generateTeamNameInputs();
-      syncYourTeamSelectOptions();
-      renderTable();
-      updateCurrentPickDisplay();
-      validateStartDraftButton();
-
-      alert("Draft board loaded successfully!");
-      document.getElementById('importBoardInput').value = '';
-    } catch (e) {
-      alert('Failed to load board backup: ' + e.message);
-      document.getElementById('importBoardInput').value = '';
-    }
-  };
-  reader.readAsText(file);
-}
     // --- Add tier insert bar (in add-tier mode, edit only) ---
     if (editingTiers && addingTierMode && t < tierBreaks.length - 2) {
       const trAddBar = document.createElement("tr");
@@ -802,7 +748,59 @@ function importBoard(file) {
     }
   }
 }
+function exportBoard() {
+  const data = {
+    players,
+    tierBreaks,
+    teamNames,
+    draftOrder,
+    currentPick,
+    myTeamIndex,
+    teamCount: teamCountSelect.value,
+    yourTeam: yourTeamSelect.value
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fantasy_draft_board_backup.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
 
+function importBoard(file) {
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const data = JSON.parse(event.target.result);
+      // Restore everything (with fallback for missing data)
+      players = data.players || players;
+      tierBreaks = data.tierBreaks || tierBreaks;
+      teamNames = data.teamNames || teamNames;
+      draftOrder = data.draftOrder || draftOrder;
+      currentPick = data.currentPick ?? currentPick;
+      myTeamIndex = data.myTeamIndex ?? myTeamIndex;
+      if (data.teamCount) teamCountSelect.value = data.teamCount;
+      if (data.yourTeam) yourTeamSelect.value = data.yourTeam;
+
+      saveAll();
+
+      // Do NOT call loadAll() here — just update everything manually
+      generateTeamNameInputs();
+      syncYourTeamSelectOptions();
+      renderTable();
+      updateCurrentPickDisplay();
+      validateStartDraftButton();
+
+      alert("Draft board loaded successfully!");
+      document.getElementById('importBoardInput').value = '';
+    } catch (e) {
+      alert('Failed to load board backup: ' + e.message);
+      document.getElementById('importBoardInput').value = '';
+    }
+  };
+  reader.readAsText(file);
+}
 // -------- Tier Move/Insert/Remove --------
 function moveTier(idx, direction) {
   if (idx <= 0 || idx >= tierBreaks.length - 1) return; // Tier 1 stuck
