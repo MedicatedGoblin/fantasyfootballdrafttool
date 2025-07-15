@@ -540,8 +540,6 @@ let players = [
   // ...add more players as needed, matching your old file format
 ];
 
-Here is the list in the desired format:
-
 let rookiePlayers = [
   { id: 1, name: "Ashton Jeanty", tag: "RB1", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
   { id: 2, name: "Omarion Hampton", tag: "RB2", position: "RB", drafted: false, draftedBy: null, pickNumber: null },
