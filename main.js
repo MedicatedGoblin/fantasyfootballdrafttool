@@ -687,6 +687,7 @@ function importBoard(file) {
       renderTable();
       updateCurrentPickDisplay();
       alert("Draft board loaded successfully!");
+       document.getElementById('importBoardInput').value = '';
     } catch (e) {
       alert('Failed to load board backup: ' + e.message);
     }
