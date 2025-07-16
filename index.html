@@ -25,6 +25,7 @@
       </label>
       <button id="startDraftBtn" onclick="setupDraft()" disabled>Start Draft</button>
       <div id="currentPickDisplay" style="margin-top: 0.5rem;"></div>
+      <button class="big-mobile-btn" onclick="resetAll()">Reset All</button>
     </div>
   </div>
 
@@ -62,7 +63,6 @@
     <label style="white-space:nowrap;">
       <input type="checkbox" id="hidePickedCheckbox" onchange="renderTable()" /> Hide Picked
     </label>
-    <button class="big-mobile-btn" onclick="resetAll()">Reset All</button>
     <button class="big-mobile-btn" id="editTiersBtn">Edit</button>
     <button class="big-mobile-btn" id="doneTiersBtn" style="display:none;">Done</button>
     <button class="big-mobile-btn" id="addTierModeBtn" style="display:none;">Add Tier</button>
